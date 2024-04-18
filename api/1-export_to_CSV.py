@@ -1,44 +1,34 @@
 #!/usr/bin/python3
 """Script to use a REST API for a given employee ID, returns
-information about his/her list progress"""
-import requests
+information about his/her TODO list progress and export in CSV"""
 import csv
+import requests
 import sys
 
 
-def fetch_employee_todo_list(employee_id):
-    url = f'https://jsonplaceholder.typicode.com/todos?userId={employee_id}'
-    response = requests.get(url)
-    if response.status_code != 200:
-        print("Error:", response.text)
-        return None
-    return response.json()
-
-def export_to_csv(employee_id, data):
-    if not data:
-        return
-    
-    filename = f"{employee_id}.csv"
-    with open(filename, 'w', newline='') as csvfile:
-        fieldnames = ['USER_ID', 'USERNAME', 'TASK_COMPLETED_STATUS', 'TASK_TITLE']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        writer.writeheader()
-        for task in data:
-            writer.writerow({
-                'USER_ID': employee_id,
-                'USERNAME': task['userId'],  # Assuming 'userId' contains the username
-                'TASK_COMPLETED_STATUS': task['completed'],
-                'TASK_TITLE': task['title']
-            })
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 script.py <employee_id>")
+        print(f"UsageError: python3 {__file__} employee_id(int)")
         sys.exit(1)
 
-    employee_id = int(sys.argv[1])
-    todo_list = fetch_employee_todo_list(employee_id)
-    if todo_list:
-        export_to_csv(employee_id, todo_list)
-        print(f"Data exported to {employee_id}.csv")
+    API_URL = "https://jsonplaceholder.typicode.com"
+    EMPLOYEE_ID = sys.argv[1]
+
+    response = requests.get(
+        f"{API_URL}/users/{EMPLOYEE_ID}/todos",
+        params={"_expand": "user"}
+    )
+    data = response.json()
+
+    if not len(data):
+        print("RequestError:", 404)
+        sys.exit(1)
+
+    username = data[0]["user"]["username"]
+
+    with open(f"{EMPLOYEE_ID}.csv", "w", newline="") as file:
+        writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC)
+        for task in data:
+            writer.writerow(
+                [EMPLOYEE_ID, username, str(task["completed"]), task["title"]]
+            )
