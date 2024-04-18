@@ -1,30 +1,47 @@
 #!/usr/bin/python3
-"""import"""
-import json
+"""
+    Api REST
+"""
+
 import requests
-import sys
+from sys import argv
+
+
+def get_employee(id=None):
+    """
+    using this REST API, for a given employee ID,
+    returns information about his/her TODO list progress.
+    """
+    # check if argv[1] is a number int
+    if len(argv) > 1:
+        try:
+            id = int(argv[1])
+        except ValueError:
+            return
+
+    if isinstance(id, int):
+        base = "https://jsonplaceholder.typicode.com"
+        user = requests.get(f"{base}/users/{id}").json()
+        to_dos = requests.get(f"{base}/todos/?userId={id}").json()
+
+        if user and to_dos:
+            total_tasks = len(to_dos)
+            # fmt: off
+            titles_completed = [task["title"]
+                                for task in to_dos
+                                if task["completed"]]
+            # fmt: on
+            tasks_completed = len(titles_completed)
+
+            print(
+                "Employee {} is done with tasks({}/{}):".format(
+                    user["name"], tasks_completed, total_tasks
+                )
+            )
+
+            for title in titles_completed:
+                print(f"\t {title}")
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"missing employee id as argument")
-        sys.exit(1)
-
-    URL = "https://jsonplaceholder.typicode.com"
-    EMPLOYEE_ID = sys.argv[1]
-
-    EMPLOYEE_TODOS = requests.get(f"{URL}/users/{EMPLOYEE_ID}/todos",
-                                  params={"_expand": "user"})
-    data = EMPLOYEE_TODOS.json()
-
-    EMPLOYEE_NAME = data[0]["user"]["name"]
-    TOTAL_NUMBER_OF_TASKS = len(data)
-    NUMBER_OF_DONE_TASKS = 0
-    TASK_TITLE = []
-    for task in data:
-        if task["completed"]:
-            NUMBER_OF_DONE_TASKS += 1
-            TASK_TITLE.append(task["title"])
-    print(f"Employee {EMPLOYEE_NAME} is done with tasks"
-          f"({NUMBER_OF_DONE_TASKS}/{TOTAL_NUMBER_OF_TASKS}):")
-    for title in TASK_TITLE:
-        print("\t ", title)
+    get_employee()
